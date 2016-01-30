@@ -8,15 +8,13 @@
 **/
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
-
-
 
 /*This program takes three inputs:
 	file - 	A binary image file
 	Length- How tall the file is in pixels
 	Width- 	How wide the file is in pixels
-
 */
 int main(int argv, char** argc){
 	//get inputs
@@ -43,6 +41,10 @@ int main(int argv, char** argc){
 	
 	//close files	
 
+
+	//display new image
+
+	
 	printf("ran\n");	
 	return 1;
 }
