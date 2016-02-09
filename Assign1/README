@@ -1,0 +1,31 @@
+This ReadMe file is for both part 1 and 2 of assignment 1
+
+Comupter Vision
+Assignment 1
+Xavier Guay
+
+---Running Part 1---
+1) run 'make clean' to clear up any prebuilt objects
+2) run 'make Part1'
+3) run the executable which takes 3 variables
+	image - file path of the image you want to use
+	length - how many rows there are in the image
+	width - how many entries per column
+	enter ./Part1 image length width
+	example: ./Part1 mri 256 256
+4) the new image will open automatically but can also be opened by entering
+	"(echo P5; echo 'width/2' 'length'; echo 255; cat 'image'_part1)|xv -&"
+	where the items in quotes refer to the variables you input into step 3
+
+---Running Part 2---
+1) run 'make clean' to clear up any prebuilt objects
+2) run 'make Part2'
+3) run the executable which takes 3 variables
+	image - file path of the image you want to use
+	length - how many rows there are in the image
+	width - how many entries per column
+	enter ./Part2 image length width
+	example: ./Part2 mri 256 256
+4) the new image will open automatically but can also be opened by entering
+	"(echo P5; echo 'width/2' 'length'; echo 255; cat 'image'_part2)|xv -&"
+	where the items in quotes refer to the variables you input into step 3
