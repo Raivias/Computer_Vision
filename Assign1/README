@@ -4,6 +4,18 @@ Comupter Vision
 Assignment 1
 Xavier Guay
 
+---Includes---
+Source code files:
+	Part1.cpp
+	Part2.cpp
+Name of execuables
+	Part1
+	Part2
+Input and Output images:
+	mri -input image 256 256
+	mri_part1 -output image 128 256
+	mri_part2 -output image 128 128
+
 ---Running Part 1---
 1) run 'make clean' to clear up any prebuilt objects
 2) run 'make Part1'
