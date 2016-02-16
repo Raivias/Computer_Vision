@@ -167,3 +167,35 @@ bool ImageCV::setImageAt(int x, int y, unsigned char pixel)
 	image[x][y] = pixel;
 	return true;
 }
+
+int ImageCV::minPixelValue(){
+	int minValue = 10000;//TODO change to infinity
+	unsigned char tempPixel;
+	for(int xCount = 0; xCount < len; xCount++)
+	{
+		for (int yCount = 0; yCount < wid; yCount++)
+		{
+			tempPixel = getImageAt(xCount, yCount);
+			if (tempPixel < minValue)
+				minValue = tempPixel;
+		}
+	}
+
+	return minValue;
+}
+
+int ImageCV::maxPixelValue(){
+	int maxValue = -1;//TODO change to infinity
+	unsigned char tempPixel;
+	for(int xCount = 0; xCount < len; xCount++)
+	{
+		for (int yCount = 0; yCount < wid; yCount++)
+		{
+			tempPixel = getImageAt(xCount, yCount);
+			if (tempPixel > maxValue)
+				maxValue = tempPixel;
+		}
+	}
+
+	return maxValue;
+}

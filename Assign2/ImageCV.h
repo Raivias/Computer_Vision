@@ -43,6 +43,8 @@ private:
 
 	bool setImageAt(int x, int y, unsigned char pixel);
 	void setEmpty(bool newEmpty){empty = newEmpty;}
+	int minPixelValue();
+	int maxPixelValue();
 };
 
 #endif 
