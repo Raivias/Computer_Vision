@@ -15,12 +15,15 @@
 #include <fstream>
 #include <vector>
 #include <sstream>
-
+#include <cmath>
 #include <iostream>
+#include <limits>
+
+#define SWAP(a,b) tempr=(a);(a)=(b);(b)=tempr
 
 //#define _DEBUG
-
 void viewImage(std::string path, int length, int width);
+void four1(float data[], int nn, int isign);
 
 int main(int argv, char** argc)
 {
@@ -41,9 +44,9 @@ int main(int argv, char** argc)
 	unsigned char inImage [length][width];
 	std::FILE* fIn = std::fopen(fInPath.c_str(),"r"); //open the given file
 	//copy pixels into the image
-	for(int lCount = 1; lCount <= length; lCount++){
+	for(int lCount = 0; lCount < length; lCount++){
 		unsigned char tempPixel;
-		for(int wCount = 1; wCount <= width; wCount++){
+		for(int wCount = 0; wCount < width; wCount++){
 			std::fread(&tempPixel, sizeof(tempPixel), 1, fIn);
 			inImage[lCount][wCount] = tempPixel;
 		}
@@ -56,41 +59,235 @@ int main(int argv, char** argc)
 	fLoadedPath += "_loaded";
 
 	std::FILE* fLoaded = std::fopen(fLoadedPath.c_str(), "w");
-	for(int lCount = 1; lCount <= length; lCount++){
+	for(int lCount = 0; lCount < length; lCount++){
 		unsigned char tempPixel;
-		for(int wCount = 1; wCount <= width; wCount++){
+		for(int wCount = 0; wCount < width; wCount++){
 			tempPixel = inImage[lCount][wCount];
 			fwrite(&tempPixel, sizeof(tempPixel), 1, fLoaded);
 		}
 	}
-	viewImage(fLoadedPath, length,width);
-	
+	viewImage(fLoadedPath, length, width);
 	#endif
 
 
 
 	//GET SPECTRUM
-	//TODO do spacial transform
+	//do spatial transform
+	float transformImage[length][width];
+	for(int lCount = 0; lCount < length; lCount++){
+		float tempValue;
+		for(int wCount = 0; wCount < width; wCount++){
+			tempValue = ((float) inImage[lCount][wCount]) * pow(-1,lCount + wCount);
+			transformImage[lCount][wCount] = tempValue;
+		}
+	}/**/
+	
+	//Do 1D FFT by row	
+	float FFT1Image[length][width*2];
+	for(int lCount = 0; lCount < length; lCount++){
+		float tempPixelLine[width*2]; //temperaraly stores a pixel line  to feed to 1D FFT
+		
+		//pad in imaginary numbers
+		for(int copyCount = 0; copyCount < width*2; copyCount++)
+			tempPixelLine[copyCount] = 0;
+		//put in real numbers
+		for(int copyCount = 0; copyCount < width*2; copyCount+=2)
+			tempPixelLine[copyCount] = transformImage[lCount][copyCount/2];
+		/**/
 
-	//TODO do 1D FFT by row
+		//Feed to 1D FFT
+		four1(tempPixelLine - 1, width, 1);
+		
+		//Copy into FFT1Image
+		for(int wCount = 0; wCount < width*2; wCount++)
+			FFT1Image[lCount][wCount] = tempPixelLine[wCount];
 
-	//TODO do 1D FFT by column
+	}/**/
+	
+	//1D FFT by column
+	float FFTRealImage[length][width];
+	float FFTImaginaryImage[length][width];
+	for(int wCount = 0; wCount < width; wCount++){
+		float tempPixelLine[length*2];//real and imaginary
+		for(int count = 0; count < length*2; count++)
+			tempPixelLine[count] = 0;
 
-	//TODO get spectrum out
+		//copy values into tempPixelLine
+		for(int lCopyCount = 0; lCopyCount < length*2; lCopyCount+=2){
+			tempPixelLine[lCopyCount]   = FFT1Image[lCopyCount/2][wCount*2];
+			tempPixelLine[lCopyCount+1] = FFT1Image[lCopyCount/2][wCount*2+1];
+		}
+		//put line through 1D FFT
+		four1(tempPixelLine-1, length, 1);
 
-	//TODO save spectrum
+		//copy Data into images
+		for(int lCopyCount = 0; lCopyCount < length*2; lCopyCount+=2){
+			FFTRealImage[lCopyCount/2][wCount]      = tempPixelLine[lCopyCount];
+			FFTImaginaryImage[lCopyCount/2][wCount] = tempPixelLine[lCopyCount+1];
+		}
+	}
+
+	//get spectrum out
+	float fSpectrum[length][width];
+	for(int lCount = 0; lCount < length; lCount++){
+		for(int wCount = 0; wCount < width; wCount++){
+			float internal = pow(FFTImaginaryImage[lCount][wCount],2);
+			internal += pow(FFTRealImage[lCount][wCount],2);
+			fSpectrum[lCount][wCount] = sqrt(internal);
+		}
+	}
+
+	//Normalize
+	unsigned char spectrum[length][width];
+	float maxFFT = std::numeric_limits<float>::min();
+	float minFFT = std::numeric_limits<float>::max();
+	//get max and min
+	for(int lCount = 0; lCount < length; lCount++){
+		for(int wCount = 0; wCount < width; wCount++){
+			if(fSpectrum[lCount][wCount] > maxFFT){
+				maxFFT = fSpectrum[lCount][wCount];
+			}
+			if(fSpectrum[lCount][wCount] < minFFT){
+				minFFT = fSpectrum[lCount][wCount];
+			}
+		}
+	}
+
+	#ifdef _DEBUG
+	printf("Min: %f Max %f\n", minFFT, maxFFT);
+	#endif
+
+	//set to normal
+	for(int lCount = 0; lCount < length; lCount++){
+		float denominator = maxFFT - minFFT;
+		for(int wCount = 0; wCount < width; wCount++){
+			float numerator = fSpectrum[lCount][wCount]-minFFT;
+			spectrum[lCount][wCount] = (unsigned char)(numerator / denominator *255);
+		}
+	}
+
+	//Save Spectrum to file
+	std::string fSpectPath;
+	fSpectPath = fInPath;
+	fSpectPath += "_spectrum";
+
+	std::FILE* fSpect = std::fopen(fSpectPath.c_str(), "w");
+	for(int lCount = 0; lCount < length; lCount++){
+		unsigned char tempPixel;
+		for(int wCount = 0; wCount < width; wCount++){
+			tempPixel = spectrum[lCount][wCount];
+			fwrite(&tempPixel, sizeof(tempPixel), 1, fSpect);
+		}
+	}
+	viewImage(fSpectPath, length, width);
+
 
 
 	//ADD FILTER
 
 
 
+
 	//GET IMAGE BACK
-	//TODO do 1D IFFT by column
+	float IFFTImage[length][width*2];
+	//set all to 0
+	for(int lCount = 0; lCount < length; lCount++){
+		for(int wCount = 0; wCount < width*2; wCount++){
+			IFFTImage[lCount][wCount] = 0;
+		}
+	}
 
-	//TODO do 1D IFFT by row
+	//copy in spectrum
+	for(int lCount = 0; lCount < length; lCount++){
+		for(int wCount = 0; wCount < width*2; wCount+=2){
+			IFFTImage[lCount][wCount] = spectrum[lCount][wCount/2];
+		}
+	}
+
+	//TODO Reverse spatial?
 
 
+	//Do 1D IFFT by column
+	for(int wCount = 0; wCount< width*2; wCount+=2){
+		float tempPixelLine[length*2];
+		for(int lCount = 0; lCount < length*2; lCount+=2){
+			tempPixelLine[lCount] = IFFTImage[lCount][wCount];
+			tempPixelLine[lCount+1] = IFFTImage[lCount][wCount+1];
+		}
+
+		//put through IFFT
+		four1(tempPixelLine-1, length, -1);
+		//put back into array
+		for(int lCount = 0; lCount < length*2; lCount+=2){
+			IFFTImage[lCount][wCount] = tempPixelLine[lCount];
+			IFFTImage[lCount][wCount+1]= tempPixelLine[lCount+1];
+		}
+	}
+
+	//Do 1D IFFT by row
+	for(int lCount = 0; lCount < length; lCount++){
+		float tempPixelLine[width*2];
+		//copy in line from image
+		for(int wCount = 0; wCount < width*2; wCount++)
+			tempPixelLine[wCount]= IFFTImage[lCount][wCount];
+
+		four1(tempPixelLine-1, width, -1);
+
+		//copy back to image
+		for(int wCount = 0; wCount< width*2; wCount++)
+			IFFTImage[lCount][wCount] = tempPixelLine[wCount];
+	}
+
+	//Square root of sums
+	float realIFFT[length][width];
+	for(int lCount = 0; lCount < length; lCount++){
+		for(int wCount = 0; wCount < width; wCount++){
+			float internal = pow(IFFTImage[lCount][wCount*2+1],2);
+			internal += pow(IFFTImage[lCount][wCount*2],2);
+			realIFFT[lCount][wCount] = sqrt(internal);
+		}
+	}
+
+
+	//Normalize
+	unsigned normIFFT[length][width];
+	float maxIFFT = std::numeric_limits<float>::min();
+	float minIFFT = std::numeric_limits<float>::max();
+	//get max and min
+	for(int lCount = 0; lCount < length; lCount++){
+		for(int wCount = 0; wCount < width; wCount++){
+			if(realIFFT[lCount][wCount] > maxIFFT){
+				maxIFFT = realIFFT[lCount][wCount];
+			}
+			if(realIFFT[lCount][wCount] < minIFFT){
+				minIFFT = realIFFT[lCount][wCount];
+			}
+		}
+	}
+
+	for(int lCount = 0; lCount < length; lCount++){
+		float denominator = maxIFFT - minIFFT;
+		for(int wCount = 0; wCount < width; wCount++){
+			float numerator = realIFFT[lCount][wCount]-minIFFT;
+			normIFFT[lCount][wCount] = (unsigned char)(numerator / denominator *255);
+		}
+	}
+	//information is now normalized in normIFFT
+
+	//Display
+	std::string fIFFTPath;
+	fIFFTPath = fInPath;
+	fIFFTPath += "_IFFT";
+
+	std::FILE* fIFFT = std::fopen(fIFFTPath.c_str(), "w");
+	for(int lCount = 0; lCount < length; lCount++){
+		unsigned char tempPixel;
+		for(int wCount = 0; wCount < width; wCount++){
+			tempPixel = normIFFT[lCount][wCount];
+			fwrite(&tempPixel, sizeof(tempPixel), 1, fIFFT);
+		}
+	}
+	viewImage(fIFFTPath, length, width);
 
 }
 
@@ -105,4 +302,50 @@ void viewImage(std::string path, int length, int width)
 	xvArgs.append(path);
 	xvArgs.append(")|xv -&");
 	system(xvArgs.c_str());
+	return;
+}
+
+void four1(float data[], int nn, int isign)
+{
+	int n,mmax,m,j,istep,i;
+	double wtemp,wr,wpr,wpi,wi,theta;
+	float tempr,tempi;
+    n=nn << 1;
+    j=1;
+    for (i=1;i<n;i+=2) {
+		if (j > i) {
+			SWAP(data[j],data[i]);
+			SWAP(data[j+1],data[i+1]);
+		}
+        m=n >> 1;
+        while (m >= 2 && j > m) {
+			j -= m;
+			m >>= 1;
+		}
+        j += m;
+	}
+    mmax=2;
+    while (n > mmax) {
+    	istep=2*mmax;
+        theta=6.28318530717959/(isign*mmax);
+        wtemp=sin(0.5*theta);
+        wpr = -2.0*wtemp*wtemp;
+        wpi=sin(theta);
+        wr=1.0;
+        wi=0.0;
+        for (m=1;m<mmax;m+=2) {
+			for (i=m;i<=n;i+=istep) {
+                j=i+mmax;
+                tempr=wr*data[j]-wi*data[j+1];
+                tempi=wr*data[j+1]+wi*data[j];
+                data[j]=data[i]-tempr;
+                data[j+1]=data[i+1]-tempi;
+                data[i] += tempr;
+            	data[i+1] += tempi;
+			}
+            wr=(wtemp=wr)*wpr-wi*wpi+wr;
+			wi=wi*wpr+wtemp*wpi+wi;
+		}
+		mmax=istep;
+	}
 }
