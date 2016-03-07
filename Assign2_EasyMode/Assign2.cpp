@@ -200,7 +200,7 @@ int main(int argv, char** argc)
 	//copy in spectrum
 	for(int lCount = 0; lCount < length; lCount++){
 		for(int wCount = 0; wCount < width*2; wCount+=2){
-			IFFTImage[lCount][wCount] = spectrum[lCount][wCount/2];
+			IFFTImage[lCount][wCount] = (float) spectrum[lCount][wCount/2];
 		}
 	}
 
@@ -211,16 +211,16 @@ int main(int argv, char** argc)
 	for(int wCount = 0; wCount< width*2; wCount+=2){
 		float tempPixelLine[length*2];
 		for(int lCount = 0; lCount < length*2; lCount+=2){
-			tempPixelLine[lCount] = IFFTImage[lCount][wCount];
-			tempPixelLine[lCount+1] = IFFTImage[lCount][wCount+1];
+			tempPixelLine[lCount] = IFFTImage[lCount/2][wCount];
+			tempPixelLine[lCount +1] = IFFTImage[lCount/2][wCount+1];
 		}
 
 		//put through IFFT
 		four1(tempPixelLine-1, length, -1);
 		//put back into array
 		for(int lCount = 0; lCount < length*2; lCount+=2){
-			IFFTImage[lCount][wCount] = tempPixelLine[lCount];
-			IFFTImage[lCount][wCount+1]= tempPixelLine[lCount+1];
+			IFFTImage[lCount/2][wCount] = tempPixelLine[lCount];
+			IFFTImage[lCount/2][wCount+1]= tempPixelLine[lCount+1];
 		}
 	}
 
@@ -250,7 +250,7 @@ int main(int argv, char** argc)
 
 
 	//Normalize
-	unsigned normIFFT[length][width];
+	unsigned char normIFFT[length][width];
 	float maxIFFT = std::numeric_limits<float>::min();
 	float minIFFT = std::numeric_limits<float>::max();
 	//get max and min
@@ -264,12 +264,14 @@ int main(int argv, char** argc)
 			}
 		}
 	}
+	printf("Min: %f Max: %f", minIFFT, maxIFFT);
 
 	for(int lCount = 0; lCount < length; lCount++){
 		float denominator = maxIFFT - minIFFT;
 		for(int wCount = 0; wCount < width; wCount++){
 			float numerator = realIFFT[lCount][wCount]-minIFFT;
 			normIFFT[lCount][wCount] = (unsigned char)(numerator / denominator *255);
+
 		}
 	}
 	//information is now normalized in normIFFT
