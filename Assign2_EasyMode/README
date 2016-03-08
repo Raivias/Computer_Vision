@@ -17,12 +17,13 @@ Input and Output images:
 ---Running The Assignment---
 1) run 'make clean' to clear up any prebuilt objects
 2) run 'make'
-3) run the executable which takes 3 variables
+3) run the executable which takes 4 variables
 	image - file path of the image you want to use
 	length - how many rows there are in the image
 	width - how many entries per column
-	enter ./Assign2 image length width
-	example: ./Assign2 mri 256 256
+	power - the power to which the Butterworth filter works, noted as n in equation
+	enter ./Assign2 image length width power
+	example: ./Assign2 mri 256 256 .5
 4) the new images will open automatically but can also be opened by entering
 	"(echo P5; echo 'width/2' 'length'; echo 255; cat 'image'_spectrum)|xv -&"
 	and

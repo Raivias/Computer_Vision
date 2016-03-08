@@ -35,6 +35,7 @@ int main(int argv, char** argc)
 	fInPath += argc[1];
 	int length = atoi(argc[2]);
 	int width = atoi(argc[3]);
+	float power = atof(argc[4]);
 	
 	if(1 == width % 2)
 	{
@@ -144,16 +145,31 @@ int main(int argv, char** argc)
 
 	//ButterworthFilter
 	{
-		float cutoff = 1; 
-		int n = 2;
+		float cutoff = 2; 
+		float n = power;//set between 1 and -1
 		float filter = 0;
 		float distPixel = 0;
+		float bFilter[length][width];
+		for(int lCount = 0; lCount < length; lCount++){
+			for(int wCount = 0; wCount < width; wCount++){
+				bFilter[lCount][wCount] = 1;
+			}
+		}
+
 		for(int lCount = 0; lCount < length; lCount++){
 			for(int wCount = 0; wCount < width; wCount++){
 				distPixel = sqrt(pow(lCount-length/2,2)+pow(wCount-width/2,2));
+				//distPixel = sqrt(pow(lCount,2)+pow(wCount,2));
 				filter = 1/(1+pow(distPixel/cutoff,2*n));
-				FFTRealImage[lCount][wCount] *= filter;
-				FFTImaginaryImage[lCount][wCount] *= filter;
+				bFilter[lCount][wCount] *= filter;
+			}
+		}
+
+		//multiply the filter and array
+		for(int lCount = 0; lCount < length; lCount++){
+			for(int wCount = 0; wCount < width; wCount++){
+				FFTRealImage[lCount][wCount] *= bFilter[lCount][wCount];
+				FFTImaginaryImage[lCount][wCount] *= bFilter[lCount][wCount];
 			}
 		}
 	}
