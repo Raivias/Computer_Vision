@@ -25,6 +25,9 @@
 void viewImage(std::string path, int length, int width);
 void four1(float data[], int nn, int isign);
 
+void ButterworthFilter(float** image, int length, int width, float cutoff, int n);
+
+
 int main(int argv, char** argc)
 {
 	//The function should pass in an image file a length and a width
@@ -70,6 +73,8 @@ int main(int argv, char** argc)
 	#endif
 
 
+	float FFTRealImage[length][width];
+	float FFTImaginaryImage[length][width];
 	float fSpectrum[length][width];
 	{
 		//GET SPECTRUM
@@ -78,11 +83,18 @@ int main(int argv, char** argc)
 		for(int lCount = 0; lCount < length; lCount++){
 			float tempValue;
 			for(int wCount = 0; wCount < width; wCount++){
-				tempValue = ((float) inImage[lCount][wCount]) * powf(-1,lCount + wCount);
+				transformImage[lCount][wCount] = (float) inImage[lCount][wCount];
+			}
+		}
+
+		
+		for(int lCount = 0; lCount < length; lCount++){
+			float tempValue;
+			for(int wCount = 0; wCount < width; wCount++){
+				tempValue = ((float) transformImage[lCount][wCount]) * powf(-1,lCount + wCount);
 				transformImage[lCount][wCount] = tempValue;
 			}
-		}/**/
-
+		}
 	
 		//Do 1D FFT by row	
 		float FFT1Image[length][width*2];
@@ -97,7 +109,7 @@ int main(int argv, char** argc)
 				tempPixelLine[copyCount] = transformImage[lCount][copyCount/2];
 
 			//Feed to 1D FFT
-			four1(tempPixelLine - 1, width, 1);
+			four1(tempPixelLine-1, width, 1);
 		
 			//Copy into FFT1Image
 			for(int wCount = 0; wCount < width*2; wCount++)
@@ -106,8 +118,7 @@ int main(int argv, char** argc)
 		}
 	
 		//1D FFT by column
-		float FFTRealImage[length][width];
-		float FFTImaginaryImage[length][width];
+		
 		for(int wCount = 0; wCount < width; wCount++){
 			float tempPixelLine[length*2];//real and imaginary
 			for(int count = 0; count < length*2; count++)
@@ -128,16 +139,33 @@ int main(int argv, char** argc)
 			}
 		}
 
-		//get spectrum out
+		
+	}
+
+	//ButterworthFilter
+	{
+		float cutoff = 1; 
+		int n = 2;
+		float filter = 0;
+		float distPixel = 0;
 		for(int lCount = 0; lCount < length; lCount++){
 			for(int wCount = 0; wCount < width; wCount++){
-				float internal = powf(FFTImaginaryImage[lCount][wCount],2);
-				internal += powf(FFTRealImage[lCount][wCount],2);
-				fSpectrum[lCount][wCount] = sqrt(internal);
+				distPixel = sqrt(pow(lCount-length/2,2)+pow(wCount-width/2,2));
+				filter = 1/(1+pow(distPixel/cutoff,2*n));
+				FFTRealImage[lCount][wCount] *= filter;
+				FFTImaginaryImage[lCount][wCount] *= filter;
 			}
 		}
 	}
 
+	//get spectrum out
+	for(int lCount = 0; lCount < length; lCount++){
+		for(int wCount = 0; wCount < width; wCount++){
+			float internal = powf(FFTImaginaryImage[lCount][wCount],2);
+			internal += powf(FFTRealImage[lCount][wCount],2);
+			fSpectrum[lCount][wCount] = sqrt(internal);
+		}
+	}
 	//Normalize
 	unsigned char spectrum[length][width];
 	float maxFFT = std::numeric_limits<float>::min();
@@ -157,7 +185,7 @@ int main(int argv, char** argc)
 	#ifdef _DEBUG
 	printf("Min: %f Max %f\n", minFFT, maxFFT);
 	#endif
-	printf("I'm here papa\n");
+
 	//set to normal
 	for(int lCount = 0; lCount < length; lCount++){
 		float denominator = maxFFT - minFFT;
@@ -183,11 +211,6 @@ int main(int argv, char** argc)
 	viewImage(fSpectPath, length, width);
 
 
-
-	//ADD FILTER
-
-
-
 	//GET IMAGE BACK
 	float IFFTImage[length][width*2];
 	//set all to 0
@@ -197,12 +220,14 @@ int main(int argv, char** argc)
 		}
 	}
 
-	//copy in spectrum
+	//copy in real and imaginary arrays
 	for(int lCount = 0; lCount < length; lCount++){
 		for(int wCount = 0; wCount < width*2; wCount+=2){
-			IFFTImage[lCount][wCount] = (float) spectrum[lCount][wCount/2];
+			IFFTImage[lCount][wCount]   = FFTRealImage[lCount][wCount/2];
+			IFFTImage[lCount][wCount+1] = FFTImaginaryImage[lCount][wCount/2];
 		}
 	}
+
 	//Do 1D IFFT by column
 	for(int wCount = 0; wCount< width*2; wCount+=2){
 		float tempPixelLine[length*2];
@@ -242,14 +267,12 @@ int main(int argv, char** argc)
 		//copy real and imaginary parts into array
 		for(int lCount = 0; lCount < length; lCount++){
 			for(int wCount = 0; wCount < width; wCount++){
-				printf("%d %d\n", lCount, wCount);
 				realPart[lCount][wCount] = IFFTImage[lCount][wCount*2];
 				imagPart[lCount][wCount] = IFFTImage[lCount][wCount*2 +1];
 			}
 		}
 		for(int lCount = 0; lCount < length; lCount++){
 			for(int wCount = 0; wCount < width; wCount++){
-				printf("%d %d\n", lCount, wCount);
 				realPart[lCount][wCount] = realPart[lCount][wCount] * powf(-1,lCount+wCount);
 				imagPart[lCount][wCount] = imagPart[lCount][wCount] * powf(-1,lCount+wCount);
 			}
@@ -257,7 +280,6 @@ int main(int argv, char** argc)
 		//copy back to IFFTImage
 		for(int lCount = 0; lCount < length; lCount++){
 			for(int wCount = 0; wCount < width; wCount++){
-				printf("%d %d\n", lCount, wCount);
 				IFFTImage[lCount][wCount*2] = realPart[lCount][wCount];
 				IFFTImage[lCount][wCount*2 +1] = imagPart[lCount][wCount];
 			}
@@ -379,4 +401,17 @@ void four1(float data[], int nn, int isign)
 		}
 		mmax=istep;
 	}
+}
+
+void ButterworthFilter(float** image, int length, int width, float cutoff, int n){
+	float filter = 0;
+	float distPixel = 0;
+	for(int lCount = 0; lCount < length; lCount++){
+		for(int wCount = 0; wCount < width; wCount++){
+			distPixel = sqrt(pow(lCount-length/2,2)+pow(wCount-width/2,2));
+			filter = 1/(1+pow(distPixel/cutoff,2*n));
+			image[lCount][wCount] *= filter;
+		}
+	}
+	return;
 }

@@ -1,0 +1,30 @@
+This ReadMe file is for Assignment 2
+
+Comupter Vision
+Assignment 2
+Xavier Guay
+
+---Includes---
+Source code files:
+	Assign2.cpp
+Name of execuables
+	Assign2
+Input and Output images:
+	mri -input image 256 256
+	
+	
+
+---Running The Assignment---
+1) run 'make clean' to clear up any prebuilt objects
+2) run 'make'
+3) run the executable which takes 3 variables
+	image - file path of the image you want to use
+	length - how many rows there are in the image
+	width - how many entries per column
+	enter ./Assign2 image length width
+	example: ./Assign2 mri 256 256
+4) the new images will open automatically but can also be opened by entering
+	"(echo P5; echo 'width/2' 'length'; echo 255; cat 'image'_spectrum)|xv -&"
+	and
+	"(echo P5; echo 'width/2' 'length'; echo 255; cat 'image'_IFFT)|xv -&"
+	where the items in quotes refer to the variables you input into step 3
