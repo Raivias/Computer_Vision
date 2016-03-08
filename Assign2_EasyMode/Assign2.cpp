@@ -25,9 +25,6 @@
 void viewImage(std::string path, int length, int width);
 void four1(float data[], int nn, int isign);
 
-void ButterworthFilter(float** image, int length, int width, float cutoff, int n);
-
-
 int main(int argv, char** argc)
 {
 	//The function should pass in an image file a length and a width
@@ -417,17 +414,4 @@ void four1(float data[], int nn, int isign)
 		}
 		mmax=istep;
 	}
-}
-
-void ButterworthFilter(float** image, int length, int width, float cutoff, int n){
-	float filter = 0;
-	float distPixel = 0;
-	for(int lCount = 0; lCount < length; lCount++){
-		for(int wCount = 0; wCount < width; wCount++){
-			distPixel = sqrt(pow(lCount-length/2,2)+pow(wCount-width/2,2));
-			filter = 1/(1+pow(distPixel/cutoff,2*n));
-			image[lCount][wCount] *= filter;
-		}
-	}
-	return;
 }
