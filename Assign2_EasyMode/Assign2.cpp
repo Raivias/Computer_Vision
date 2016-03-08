@@ -70,70 +70,71 @@ int main(int argv, char** argc)
 	#endif
 
 
-
-	//GET SPECTRUM
-	//do spatial transform
-	float transformImage[length][width];
-	for(int lCount = 0; lCount < length; lCount++){
-		float tempValue;
-		for(int wCount = 0; wCount < width; wCount++){
-			tempValue = ((float) inImage[lCount][wCount]) * pow(-1,lCount + wCount);
-			transformImage[lCount][wCount] = tempValue;
-		}
-	}/**/
-	
-	//Do 1D FFT by row	
-	float FFT1Image[length][width*2];
-	for(int lCount = 0; lCount < length; lCount++){
-		float tempPixelLine[width*2]; //temperaraly stores a pixel line  to feed to 1D FFT
-		
-		//pad in imaginary numbers
-		for(int copyCount = 0; copyCount < width*2; copyCount++)
-			tempPixelLine[copyCount] = 0;
-		//put in real numbers
-		for(int copyCount = 0; copyCount < width*2; copyCount+=2)
-			tempPixelLine[copyCount] = transformImage[lCount][copyCount/2];
-		/**/
-
-		//Feed to 1D FFT
-		four1(tempPixelLine - 1, width, 1);
-		
-		//Copy into FFT1Image
-		for(int wCount = 0; wCount < width*2; wCount++)
-			FFT1Image[lCount][wCount] = tempPixelLine[wCount];
-
-	}/**/
-	
-	//1D FFT by column
-	float FFTRealImage[length][width];
-	float FFTImaginaryImage[length][width];
-	for(int wCount = 0; wCount < width; wCount++){
-		float tempPixelLine[length*2];//real and imaginary
-		for(int count = 0; count < length*2; count++)
-			tempPixelLine[count] = 0;
-
-		//copy values into tempPixelLine
-		for(int lCopyCount = 0; lCopyCount < length*2; lCopyCount+=2){
-			tempPixelLine[lCopyCount]   = FFT1Image[lCopyCount/2][wCount*2];
-			tempPixelLine[lCopyCount+1] = FFT1Image[lCopyCount/2][wCount*2+1];
-		}
-		//put line through 1D FFT
-		four1(tempPixelLine-1, length, 1);
-
-		//copy Data into images
-		for(int lCopyCount = 0; lCopyCount < length*2; lCopyCount+=2){
-			FFTRealImage[lCopyCount/2][wCount]      = tempPixelLine[lCopyCount];
-			FFTImaginaryImage[lCopyCount/2][wCount] = tempPixelLine[lCopyCount+1];
-		}
-	}
-
-	//get spectrum out
 	float fSpectrum[length][width];
-	for(int lCount = 0; lCount < length; lCount++){
+	{
+		//GET SPECTRUM
+		//do spatial transform
+		float transformImage[length][width];
+		for(int lCount = 0; lCount < length; lCount++){
+			float tempValue;
+			for(int wCount = 0; wCount < width; wCount++){
+				tempValue = ((float) inImage[lCount][wCount]) * powf(-1,lCount + wCount);
+				transformImage[lCount][wCount] = tempValue;
+			}
+		}/**/
+
+	
+		//Do 1D FFT by row	
+		float FFT1Image[length][width*2];
+		for(int lCount = 0; lCount < length; lCount++){
+			float tempPixelLine[width*2]; //temperaraly stores a pixel line  to feed to 1D FFT
+		
+			//pad in imaginary numbers
+			for(int copyCount = 0; copyCount < width*2; copyCount++)
+				tempPixelLine[copyCount] = 0;
+			//put in real numbers
+			for(int copyCount = 0; copyCount < width*2; copyCount+=2)
+				tempPixelLine[copyCount] = transformImage[lCount][copyCount/2];
+
+			//Feed to 1D FFT
+			four1(tempPixelLine - 1, width, 1);
+		
+			//Copy into FFT1Image
+			for(int wCount = 0; wCount < width*2; wCount++)
+				FFT1Image[lCount][wCount] = tempPixelLine[wCount];
+
+		}
+	
+		//1D FFT by column
+		float FFTRealImage[length][width];
+		float FFTImaginaryImage[length][width];
 		for(int wCount = 0; wCount < width; wCount++){
-			float internal = pow(FFTImaginaryImage[lCount][wCount],2);
-			internal += pow(FFTRealImage[lCount][wCount],2);
-			fSpectrum[lCount][wCount] = sqrt(internal);
+			float tempPixelLine[length*2];//real and imaginary
+			for(int count = 0; count < length*2; count++)
+				tempPixelLine[count] = 0;
+
+			//copy values into tempPixelLine
+			for(int lCopyCount = 0; lCopyCount < length*2; lCopyCount+=2){
+				tempPixelLine[lCopyCount]   = FFT1Image[lCopyCount/2][wCount*2];
+				tempPixelLine[lCopyCount+1] = FFT1Image[lCopyCount/2][wCount*2+1];
+			}
+			//put line through 1D FFT
+			four1(tempPixelLine-1, length, 1);
+
+			//copy Data into images
+			for(int lCopyCount = 0; lCopyCount < length*2; lCopyCount+=2){
+				FFTRealImage[lCopyCount/2][wCount]      = tempPixelLine[lCopyCount];
+				FFTImaginaryImage[lCopyCount/2][wCount] = tempPixelLine[lCopyCount+1];
+			}
+		}
+
+		//get spectrum out
+		for(int lCount = 0; lCount < length; lCount++){
+			for(int wCount = 0; wCount < width; wCount++){
+				float internal = powf(FFTImaginaryImage[lCount][wCount],2);
+				internal += powf(FFTRealImage[lCount][wCount],2);
+				fSpectrum[lCount][wCount] = sqrt(internal);
+			}
 		}
 	}
 
@@ -156,7 +157,7 @@ int main(int argv, char** argc)
 	#ifdef _DEBUG
 	printf("Min: %f Max %f\n", minFFT, maxFFT);
 	#endif
-
+	printf("I'm here papa\n");
 	//set to normal
 	for(int lCount = 0; lCount < length; lCount++){
 		float denominator = maxFFT - minFFT;
@@ -187,7 +188,6 @@ int main(int argv, char** argc)
 
 
 
-
 	//GET IMAGE BACK
 	float IFFTImage[length][width*2];
 	//set all to 0
@@ -203,10 +203,6 @@ int main(int argv, char** argc)
 			IFFTImage[lCount][wCount] = (float) spectrum[lCount][wCount/2];
 		}
 	}
-
-	//TODO Reverse spatial?
-
-
 	//Do 1D IFFT by column
 	for(int wCount = 0; wCount< width*2; wCount+=2){
 		float tempPixelLine[length*2];
@@ -238,16 +234,49 @@ int main(int argv, char** argc)
 			IFFTImage[lCount][wCount] = tempPixelLine[wCount];
 	}
 
+
+	//spatial tansform/*
+	{
+		float realPart[length][width];
+		float imagPart[length][width];
+		//copy real and imaginary parts into array
+		for(int lCount = 0; lCount < length; lCount++){
+			for(int wCount = 0; wCount < width; wCount++){
+				printf("%d %d\n", lCount, wCount);
+				realPart[lCount][wCount] = IFFTImage[lCount][wCount*2];
+				imagPart[lCount][wCount] = IFFTImage[lCount][wCount*2 +1];
+			}
+		}
+		for(int lCount = 0; lCount < length; lCount++){
+			for(int wCount = 0; wCount < width; wCount++){
+				printf("%d %d\n", lCount, wCount);
+				realPart[lCount][wCount] = realPart[lCount][wCount] * powf(-1,lCount+wCount);
+				imagPart[lCount][wCount] = imagPart[lCount][wCount] * powf(-1,lCount+wCount);
+			}
+		}
+		//copy back to IFFTImage
+		for(int lCount = 0; lCount < length; lCount++){
+			for(int wCount = 0; wCount < width; wCount++){
+				printf("%d %d\n", lCount, wCount);
+				IFFTImage[lCount][wCount*2] = realPart[lCount][wCount];
+				IFFTImage[lCount][wCount*2 +1] = imagPart[lCount][wCount];
+			}
+		}
+	}/**/
+
+
+	
 	//Square root of sums
 	float realIFFT[length][width];
 	for(int lCount = 0; lCount < length; lCount++){
 		for(int wCount = 0; wCount < width; wCount++){
-			float internal = pow(IFFTImage[lCount][wCount*2+1],2);
-			internal += pow(IFFTImage[lCount][wCount*2],2);
-			realIFFT[lCount][wCount] = sqrt(internal);
+			//printf("%d %d\n", wCount, wCount*2 +1 );
+			float internal = powf(IFFTImage[lCount][wCount*2+1],2); //I^2
+			internal += powf(IFFTImage[lCount][wCount*2],2); //I^2 + R^2
+			realIFFT[lCount][wCount] = sqrt(internal); //sqrt(I^2+R^2)
+			//printf("%f %f\n", realIFFT[lCount][wCount], internal);
 		}
 	}
-
 
 	//Normalize
 	unsigned char normIFFT[length][width];
@@ -264,7 +293,7 @@ int main(int argv, char** argc)
 			}
 		}
 	}
-	printf("Min: %f Max: %f", minIFFT, maxIFFT);
+	//printf("Min: %f Max: %f\n", minIFFT, maxIFFT);
 
 	for(int lCount = 0; lCount < length; lCount++){
 		float denominator = maxIFFT - minIFFT;
